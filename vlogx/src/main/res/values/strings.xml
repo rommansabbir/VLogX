@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">VLogX</string>
+    <string name="log_window">Log Window</string>
+    <string name="show_log_window">Show Log Window</string>
+</resources>
