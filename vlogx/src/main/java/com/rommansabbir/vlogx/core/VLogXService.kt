@@ -1,14 +1,16 @@
 package com.rommansabbir.vlogx.core
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
+import android.app.Activity
 import android.app.Application
+import android.app.Application.ActivityLifecycleCallbacks
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import android.provider.Settings
 import android.view.*
@@ -18,11 +20,16 @@ import com.rommansabbir.commander.Command
 import com.rommansabbir.commander.Commander
 import com.rommansabbir.commander.CommanderManager
 import com.rommansabbir.vlogx.R
+import java.lang.ref.WeakReference
+
 
 class VLogXService : Service() {
+
     companion object {
         const val UID = "VLogXService_UID"
-        const val COMMAND = "VLogXService_NEW_LOG"
+        const val NEW_LOG_COMMAND = "VLogXService_NEW_LOG"
+        const val CLEAR_LOGS_COMMAND = "VLogXService_CLEAR_LOGS"
+        const val CLEAR_LOGS_AND_CLOSE_COMMAND = "VLogXService_CLEAR_LOGS_AND_CLOSE"
 
         @Volatile
         private var isViewInitialized: Boolean = false
@@ -30,13 +37,67 @@ class VLogXService : Service() {
         @Volatile
         private var application: Application? = null
 
+        private var callback = {}
+
+        private var initializeAdapter = {}
+
+        private var adapter: LoggerXAdapter? = null
+
+        private var isRequestOngoing : Boolean = false
+
+
+        fun requestOverlayDisplayPermission(context: Activity) {
+            if (!isRequestOngoing){
+                val code = 101
+                val myIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                myIntent.data = Uri.parse("package:${context.packageName}")
+                context.startActivityForResult(myIntent, code)
+                isRequestOngoing = true
+            }
+        }
+
         fun init(application: Application) {
             this.application = application
+            this.application?.registerActivityLifecycleCallbacks(object :
+                ActivityLifecycleCallbacks {
+                override fun onActivityCreated(p0: Activity, p1: Bundle?) {
+                    initializeAdapter = {
+                        adapter = LoggerXAdapter(WeakReference(p0))
+                    }
+                    callback = {
+                        requestOverlayDisplayPermission(p0)
+                    }
+                }
+
+                override fun onActivityStarted(p0: Activity) {
+                }
+
+                override fun onActivityResumed(p0: Activity) {
+                }
+
+                override fun onActivityPaused(p0: Activity) {
+                }
+
+                override fun onActivityStopped(p0: Activity) {
+                }
+
+                override fun onActivitySaveInstanceState(p0: Activity, p1: Bundle) {
+                }
+
+                override fun onActivityDestroyed(p0: Activity) {
+                }
+
+            })
             try {
                 application.startService(Intent(application, VLogXService::class.java))
             } catch (e: Exception) {
                 this.application = null
                 e.printStackTrace()
+                try {
+                    application.stopService(Intent(application, VLogXService::class.java))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
     }
@@ -45,7 +106,6 @@ class VLogXService : Service() {
     private var params: WindowManager.LayoutParams? = null
     private var windowManager: WindowManager? = null
     private var layoutInflater: LayoutInflater? = null
-    private val adapter = LoggerXAdapter()
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
@@ -59,29 +119,6 @@ class VLogXService : Service() {
         }
     }
 
-    fun requestOverlayDisplayPermission(context: Context) {
-        val intent =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:${context.applicationInfo.packageName}")
-                )
-            } else {
-                null
-            }
-        if (intent != null) {
-            val builder = AlertDialog.Builder(context)
-            builder.setCancelable(true)
-            builder.setTitle("Screen Overlay Permission Needed")
-            builder.setMessage("Enable 'Display over other apps' from System Settings.")
-            builder.setPositiveButton("Open Settings") { _, _ ->
-                context.startService(intent)
-            }
-            val dialog = builder.create()
-            dialog.show()
-        }
-    }
-
     @SuppressLint("InflateParams")
     override fun onCreate() {
         super.onCreate()
@@ -90,15 +127,28 @@ class VLogXService : Service() {
         CommanderManager.getInstance()
             .register(UID, object : Commander.Listener {
                 override fun receiveCommand(command: Command) {
-                    if (VLogXService.application == null) {
-                        return
+                    if (command.command == CLEAR_LOGS_COMMAND) {
+                       adapter?.clear()
                     }
-                    if (checkOverlayDisplayPermission(VLogXService.application!!)) {
-                        if (command.command == COMMAND) {
+                    if (command.command == CLEAR_LOGS_AND_CLOSE_COMMAND) {
+                        close()
+                        initializeAdapter.invoke()
+                    }
+                    if (command.command == NEW_LOG_COMMAND) {
+                        if (VLogXService.application == null) {
+                            return
+                        }
+                        if (checkOverlayDisplayPermission(VLogXService.application!!)) {
                             if (isViewInitialized) {
                                 try {
-                                    if (!adapter.isEmpty()) {
-                                        adapter.addData(command.params.toString())
+                                    if (adapter != null) {
+                                        adapter?.addData(command.params.toString())
+                                        try {
+                                            view!!.findViewById<RecyclerView>(R.id.loggerRecyclerView)
+                                                .smoothScrollToPosition(adapter?.itemCount ?: -1)
+                                        } catch (e: Exception) {
+                                            e.printStackTrace()
+                                        }
                                     } else {
                                         initVLogX(command)
                                     }
@@ -109,12 +159,12 @@ class VLogXService : Service() {
                             } else {
                                 initVLogX(command)
                             }
-                        }
-                    } else {
-                        try {
-                            requestOverlayDisplayPermission(VLogXService.application!!)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                        } else {
+                            try {
+                                callback.invoke()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
                     }
                 }
@@ -123,12 +173,19 @@ class VLogXService : Service() {
 
     private fun initVLogX(command: Command) {
         initializeView()
-        adapter.addData(command.params.toString())
+        adapter?.addData(command.params.toString())
+        try {
+            view!!.findViewById<RecyclerView>(R.id.loggerRecyclerView)
+                .smoothScrollToPosition(adapter?.itemCount ?: -1)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     @SuppressLint("InflateParams")
     private fun initializeView() {
         try {
+            initializeAdapter.invoke()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
                 val metrics = applicationContext.resources.displayMetrics
@@ -137,7 +194,7 @@ class VLogXService : Service() {
                 // set the layout parameters of the window
                 params = WindowManager.LayoutParams(
                     (width * .9f).toInt(),
-                    (height * 0.2f).toInt(),  // Display it on top of other application windows
+                    (height * 0.3f).toInt(),  // Display it on top of other application windows
                     WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,  // Don't let it grab the input focus
                     WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,  // Make the underlying application window visible
                     // through any transparent parts
@@ -161,6 +218,7 @@ class VLogXService : Service() {
             // setup adapter
             view!!.findViewById<RecyclerView>(R.id.loggerRecyclerView).adapter = adapter
             open()
+            isViewInitialized = true
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -218,13 +276,14 @@ class VLogXService : Service() {
     }
 
     private fun close() {
+        isViewInitialized = false
         try {
             // remove the view from the window
             (applicationContext.getSystemService(WINDOW_SERVICE) as WindowManager).removeView(view)
             // invalidate the view
-            view!!.invalidate()
+            view?.invalidate()
             // remove all views
-            (view!!.parent as ViewGroup).removeAllViews()
+            (view?.parent as ViewGroup).removeAllViews()
 
             // the above steps are necessary when you are adding and removing
             // the view simultaneously, it might give some exceptions
@@ -239,8 +298,7 @@ class VLogXService : Service() {
         isViewInitialized = false
         try {
             CommanderManager.getInstance().unregister(UID)
-        }
-        catch (e : Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
