@@ -1,13 +1,18 @@
 package com.rommansabbir.vlogx.core
 
+import android.app.Activity
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import com.rommansabbir.vlogx.databinding.ItemSimpleTextBinding
+import com.rommansabbir.vlogx.R
+import java.lang.ref.WeakReference
 
-internal class LoggerXAdapter : RecyclerView.Adapter<LoggerXViewHolder>() {
+internal class LoggerXAdapter(private val context: WeakReference<Activity>) :
+    RecyclerView.Adapter<LoggerXViewHolder>() {
     private val diffCallback = object : DiffUtil.ItemCallback<String>() {
         override fun areItemsTheSame(oldItem: String, newItem: String): Boolean {
             return oldItem == newItem
@@ -26,13 +31,14 @@ internal class LoggerXAdapter : RecyclerView.Adapter<LoggerXViewHolder>() {
         differ.submitList(temp)
     }
 
+    fun clear() {
+        differ.submitList(mutableListOf())
+    }
+
     fun isEmpty() = differ.currentList.isEmpty()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LoggerXViewHolder {
-        val binding = ItemSimpleTextBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
-        )
-
+        val binding = LayoutInflater.from(context.get()).inflate(R.layout.item_simple_text, parent, false)
         return LoggerXViewHolder(binding)
     }
 
@@ -43,9 +49,9 @@ internal class LoggerXAdapter : RecyclerView.Adapter<LoggerXViewHolder>() {
     }
 }
 
-internal class LoggerXViewHolder(private val binding: ItemSimpleTextBinding) :
-    RecyclerView.ViewHolder(binding.root) {
+internal class LoggerXViewHolder(private val binding: View) :
+    RecyclerView.ViewHolder(binding) {
     fun bindView(data: String) {
-        binding.textView.text = data
+        binding.findViewById<TextView>(R.id.textView).text = data
     }
 }
