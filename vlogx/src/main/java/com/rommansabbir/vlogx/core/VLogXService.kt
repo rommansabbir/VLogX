@@ -47,7 +47,6 @@ class VLogXService : Service() {
         private var isRequestOngoing: Boolean = false
 
 
-        @RequiresApi(Build.VERSION_CODES.M)
         fun requestOverlayDisplayPermission(context: Activity) {
             if (!isRequestOngoing) {
                 val code = 101
