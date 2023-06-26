@@ -14,13 +14,9 @@ import java.lang.ref.WeakReference
 internal class LoggerXAdapter(private val context: WeakReference<Activity>) :
     RecyclerView.Adapter<LoggerXViewHolder>() {
     private val diffCallback = object : DiffUtil.ItemCallback<String>() {
-        override fun areItemsTheSame(oldItem: String, newItem: String): Boolean {
-            return oldItem == newItem
-        }
+        override fun areItemsTheSame(oldItem: String, newItem: String) = oldItem == newItem
 
-        override fun areContentsTheSame(oldItem: String, newItem: String): Boolean {
-            return oldItem == newItem
-        }
+        override fun areContentsTheSame(oldItem: String, newItem: String) = oldItem == newItem
     }
 
     private val differ = AsyncListDiffer(this, diffCallback)
@@ -38,7 +34,8 @@ internal class LoggerXAdapter(private val context: WeakReference<Activity>) :
     fun isEmpty() = differ.currentList.isEmpty()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LoggerXViewHolder {
-        val binding = LayoutInflater.from(context.get()).inflate(R.layout.item_simple_text, parent, false)
+        val binding =
+            LayoutInflater.from(context.get()).inflate(R.layout.item_simple_text, parent, false)
         return LoggerXViewHolder(binding)
     }
 

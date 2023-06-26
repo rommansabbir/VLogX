@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.os.IBinder
 import android.provider.Settings
 import android.view.*
+import androidx.annotation.RequiresApi
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.rommansabbir.commander.Command
@@ -43,11 +44,12 @@ class VLogXService : Service() {
 
         private var adapter: LoggerXAdapter? = null
 
-        private var isRequestOngoing : Boolean = false
+        private var isRequestOngoing: Boolean = false
 
 
+        @RequiresApi(Build.VERSION_CODES.M)
         fun requestOverlayDisplayPermission(context: Activity) {
-            if (!isRequestOngoing){
+            if (!isRequestOngoing) {
                 val code = 101
                 val myIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
                 myIntent.data = Uri.parse("package:${context.packageName}")
@@ -60,6 +62,7 @@ class VLogXService : Service() {
             this.application = application
             this.application?.registerActivityLifecycleCallbacks(object :
                 ActivityLifecycleCallbacks {
+                @RequiresApi(Build.VERSION_CODES.M)
                 override fun onActivityCreated(p0: Activity, p1: Bundle?) {
                     initializeAdapter = {
                         adapter = LoggerXAdapter(WeakReference(p0))
@@ -128,7 +131,7 @@ class VLogXService : Service() {
             .register(UID, object : Commander.Listener {
                 override fun receiveCommand(command: Command) {
                     if (command.command == CLEAR_LOGS_COMMAND) {
-                       adapter?.clear()
+                        adapter?.clear()
                     }
                     if (command.command == CLEAR_LOGS_AND_CLOSE_COMMAND) {
                         close()
@@ -205,18 +208,18 @@ class VLogXService : Service() {
             layoutInflater =
                 applicationContext.getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
             view = layoutInflater?.inflate(R.layout.floating_view_layout, null)
-            view!!.findViewById<AppCompatImageView>(R.id.closeWindowButton).setOnClickListener {
+            view?.findViewById<AppCompatImageView>(R.id.closeWindowButton)?.setOnClickListener {
                 close()
             }
-            params!!.gravity = Gravity.TOP
-            params!!.verticalMargin = 0.25f
+            params?.gravity = Gravity.TOP
+            params?.verticalMargin = 0.25f
             params?.x = 0
             params?.y = 0
             windowManager = applicationContext!!.getSystemService(WINDOW_SERVICE) as WindowManager?
             configTouchListener(view)
 
             // setup adapter
-            view!!.findViewById<RecyclerView>(R.id.loggerRecyclerView).adapter = adapter
+            view?.findViewById<RecyclerView>(R.id.loggerRecyclerView)?.adapter = adapter
             open()
             isViewInitialized = true
         } catch (e: Exception) {
@@ -247,6 +250,7 @@ class VLogXService : Service() {
                         // coordinate of this event
                         py = event.rawY.toDouble()
                     }
+
                     MotionEvent.ACTION_MOVE -> {
                         floatWindowLayoutUpdateParam.x = (x + event.rawX - px).toInt()
                         floatWindowLayoutUpdateParam.y = (y + event.rawY - py).toInt()
