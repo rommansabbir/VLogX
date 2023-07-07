@@ -1,4 +1,4 @@
-![NetworkX](https://user-images.githubusercontent.com/25950083/185731068-480fd969-f18d-439c-938a-6285a50c2be2.png)
+![VlogX](https://github.com/rommansabbir/VLogX/assets/25950083/0390236c-6ac1-4200-b046-35cc744edeea)
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#getting-started-quick)
 
