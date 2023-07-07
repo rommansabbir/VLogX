@@ -7,14 +7,14 @@ import com.rommansabbir.vlogx.core.VLogXService
 /**
  * Send a log to the core service.
  *
- * @param log [Any] data to be shown to the log UI.
+ * @param log [String] data to be shown to the log UI.
  *
  * @return [Unit]
  */
-fun sendLog(log: Any) {
+fun sendLog(log: String) {
     CommanderManager.initialize()
     CommanderManager.getInstance()
-        .broadcastCommand(Command(VLogXService.NEW_LOG_COMMAND, log.toString(), VLogXService.UID))
+        .broadcastCommand(Command(VLogXService.NEW_LOG_COMMAND, log, VLogXService.UID))
 }
 
 /**

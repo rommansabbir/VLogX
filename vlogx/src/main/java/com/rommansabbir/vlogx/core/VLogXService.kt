@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.rommansabbir.commander.Command
 import com.rommansabbir.commander.Commander
 import com.rommansabbir.commander.CommanderManager
+import com.rommansabbir.vlogx.BuildConfig
 import com.rommansabbir.vlogx.R
 import java.lang.ref.WeakReference
 
@@ -27,10 +28,10 @@ import java.lang.ref.WeakReference
 class VLogXService : Service() {
 
     companion object {
-        const val UID = "VLogXService_UID"
-        const val NEW_LOG_COMMAND = "VLogXService_NEW_LOG"
-        const val CLEAR_LOGS_COMMAND = "VLogXService_CLEAR_LOGS"
-        const val CLEAR_LOGS_AND_CLOSE_COMMAND = "VLogXService_CLEAR_LOGS_AND_CLOSE"
+        internal const val UID = "VLogXService_UID"
+        internal const val NEW_LOG_COMMAND = "VLogXService_NEW_LOG"
+        internal const val CLEAR_LOGS_COMMAND = "VLogXService_CLEAR_LOGS"
+        internal const val CLEAR_LOGS_AND_CLOSE_COMMAND = "VLogXService_CLEAR_LOGS_AND_CLOSE"
 
         @Volatile
         private var isViewInitialized: Boolean = false
@@ -58,47 +59,49 @@ class VLogXService : Service() {
         }
 
         fun init(application: Application) {
-            this.application = application
-            this.application?.registerActivityLifecycleCallbacks(object :
-                ActivityLifecycleCallbacks {
-                @RequiresApi(Build.VERSION_CODES.M)
-                override fun onActivityCreated(p0: Activity, p1: Bundle?) {
-                    initializeAdapter = {
-                        adapter = LoggerXAdapter(WeakReference(p0))
+            if (BuildConfig.DEBUG){
+                this.application = application
+                this.application?.registerActivityLifecycleCallbacks(object :
+                    ActivityLifecycleCallbacks {
+                    @RequiresApi(Build.VERSION_CODES.M)
+                    override fun onActivityCreated(p0: Activity, p1: Bundle?) {
+                        initializeAdapter = {
+                            adapter = LoggerXAdapter(WeakReference(p0))
+                        }
+                        callback = {
+                            requestOverlayDisplayPermission(p0)
+                        }
                     }
-                    callback = {
-                        requestOverlayDisplayPermission(p0)
+
+                    override fun onActivityStarted(p0: Activity) {
                     }
-                }
 
-                override fun onActivityStarted(p0: Activity) {
-                }
+                    override fun onActivityResumed(p0: Activity) {
+                    }
 
-                override fun onActivityResumed(p0: Activity) {
-                }
+                    override fun onActivityPaused(p0: Activity) {
+                    }
 
-                override fun onActivityPaused(p0: Activity) {
-                }
+                    override fun onActivityStopped(p0: Activity) {
+                    }
 
-                override fun onActivityStopped(p0: Activity) {
-                }
+                    override fun onActivitySaveInstanceState(p0: Activity, p1: Bundle) {
+                    }
 
-                override fun onActivitySaveInstanceState(p0: Activity, p1: Bundle) {
-                }
+                    override fun onActivityDestroyed(p0: Activity) {
+                    }
 
-                override fun onActivityDestroyed(p0: Activity) {
-                }
-
-            })
-            try {
-                application.startService(Intent(application, VLogXService::class.java))
-            } catch (e: Exception) {
-                this.application = null
-                e.printStackTrace()
+                })
                 try {
-                    application.stopService(Intent(application, VLogXService::class.java))
+                    application.startService(Intent(application, VLogXService::class.java))
                 } catch (e: Exception) {
+                    this.application = null
                     e.printStackTrace()
+                    try {
+                        application.stopService(Intent(application, VLogXService::class.java))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
             }
         }

@@ -61,7 +61,7 @@ afterEvaluate {
             release(MavenPublication) {
                 from components.release
                 groupId = 'com.github.rommansabbir'
-                artifactId = 'VLogX'
+                artifactId = 'vlogx'
                 version = '1.0.0'
             }
         }

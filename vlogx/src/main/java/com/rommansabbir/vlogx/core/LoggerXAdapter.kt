@@ -31,8 +31,6 @@ internal class LoggerXAdapter(private val context: WeakReference<Activity>) :
         differ.submitList(mutableListOf())
     }
 
-    fun isEmpty() = differ.currentList.isEmpty()
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LoggerXViewHolder {
         val binding =
             LayoutInflater.from(context.get()).inflate(R.layout.item_simple_text, parent, false)
