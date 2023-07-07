@@ -1,7 +1,10 @@
 plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
+    id 'maven-publish'
 }
+group = 'rommansabbir'
+version '1.0.0'
 
 android {
     namespace 'com.rommansabbir.vlogx'
@@ -49,4 +52,18 @@ dependencies {
 
     //
     implementation 'com.github.rommansabbir:Commander:1.4.0'
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            // Creates a Maven publication called "release".
+            release(MavenPublication) {
+                from components.release
+                groupId = 'com.github.rommansabbir'
+                artifactId = 'VLogX'
+                version = '1.0.0'
+            }
+        }
+    }
 }
